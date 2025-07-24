@@ -99,7 +99,7 @@ unsafe extern "C" {
     pub fn rotate_sprite(sprite_id: c_uint, thickness: c_float);
     pub fn remove_sprite(sprite_id: c_uint);
 
-    pub fn shrink_renderer();
+    pub fn sprite_cleanup();
     pub fn destroy_renderer();
 
     pub fn get_sprite(sprite_id: c_uint) -> *mut CircleSquare;
@@ -143,6 +143,5 @@ unsafe extern "C" {
     pub fn override_sprite(sprite_id: c_uint, x: c_float, y: c_float, width: c_float, height: c_float, thick: c_float, r: c_float, g: c_float, b: c_float);
     //Initialize rendering
     pub fn initialize_render();
-
 }
 
