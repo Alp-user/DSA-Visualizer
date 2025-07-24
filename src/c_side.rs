@@ -125,6 +125,13 @@ unsafe extern "C" {
         height: c_float,
     ) -> c_uint;
 
+    pub fn create_text_height(
+        copy_text: *const c_char,
+        cx: c_float,
+        cy: c_float,
+        pixel_line_height: c_float,
+    ) -> c_uint;
+
     pub fn move_text(text_id: c_uint, glo_x: c_float, glo_y: c_float);
     pub fn modify_text(text_id: c_uint, new_text: *const c_char);
     pub fn delete_text(text_id: c_uint);
@@ -135,7 +142,7 @@ unsafe extern "C" {
     pub fn free_font_resources();
     pub fn text_cleanup();
     
-    pub fn resize_font(scale_value: c_float);
+    pub fn scale_font(text_id: c_uint, pixel_line_height: c_uint);
     pub fn color_font(r: c_float, g: c_float, b: c_float);
 
     pub fn load_functions() -> c_int;

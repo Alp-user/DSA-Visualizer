@@ -36,6 +36,7 @@ const LINE_HEIGHT: c_float = 3.0;
 const TRIANGLE_WIDTH_RATIO_LINE_HEIGHT: c_float = 3.0 * LINE_HEIGHT; 
 const TRIANGLE_HIGHT:c_float = 20.0;
 const LINE_STOE_RATIO: c_float = 0.7;
+const CENTERING_RATIO: c_float = 0.9;
 
 #[allow(dead_code)]
 pub struct Point{
@@ -229,8 +230,8 @@ impl Line{
 
 impl Node{
     pub fn new(shape_distance: CS,text: &str, center_x: c_float, center_y: c_float, highlight: Highlight) -> Self {
-        let bounding_width: c_float;
-        let bounding_height: c_float;
+        let mut bounding_width: c_float;
+        let mut bounding_height: c_float;
         let r: c_float;
         let g: c_float;
         let b: c_float;
@@ -249,7 +250,9 @@ impl Node{
 
         match shape_distance{
             CS::Circle(radius) =>{
-                bounding_width = 2.0*radius*f32::cos(PI / 4.0);
+                bounding_width = 2.0 * radius * f32::cos(PI / 4.0);
+                bounding_width -= 2.0 * DEFAULT_THICKNESS;
+                bounding_width *= CENTERING_RATIO;
                 bounding_height = bounding_width;
 
                 unsafe{
@@ -261,8 +264,9 @@ impl Node{
                 }
             }
             CS::Square(edge_length) =>{
-                bounding_width = 2.0*edge_length;
-                bounding_height = 2.0*edge_length;
+                bounding_width = 2.0 * (edge_length - DEFAULT_THICKNESS);
+                bounding_width *= CENTERING_RATIO;
+                bounding_height = bounding_width;
 
                 unsafe{
                     Node{distance: shape_distance,
@@ -273,8 +277,10 @@ impl Node{
                 }
             }
             CS::Rectangle(width,height) => {
-                bounding_width = 2.0*width;
-                bounding_height = 2.0*height;
+                bounding_width = 2.0 * (width - DEFAULT_THICKNESS);
+                bounding_height = 2.0 * (height - DEFAULT_THICKNESS);
+                bounding_width *= CENTERING_RATIO;
+                bounding_height *= CENTERING_RATIO;
 
                 unsafe{
                     Node{distance: shape_distance,
