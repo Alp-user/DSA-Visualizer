@@ -1,5 +1,5 @@
 fn main() {
-    println!("cargo:rerun-if-changed=include/src/my_font_load.cpp");
+    println!("cargo:rerun-if-changed=include/src/font_renderer.cpp");
     println!("cargo:rerun-if-changed=include/src/glad.c");
     println!("cargo:rerun-if-changed=include/src/GLDebug.cpp");
     println!("cargo:rerun-if-changed=include/src/shader.cpp");
@@ -8,13 +8,21 @@ fn main() {
     println!("cargo:rerun-if-changed=include/src/stb_image.c");
     println!("cargo:rerun-if-changed=include/src/initializer.cpp");
     
-    println!("cargo:rustc-link-lib=GL");
-    println!("cargo:rustc-link-lib=glfw");
 
     cc::Build::new()
         .cpp(true)
+        .flag("-std=c++17")
+        .flag("-Wall")
+        .flag("-Wextra")
+        .flag("-pthread")
         .include("include/include")
-        .files(["include/src/my_font_load.cpp",
+        .include("/usr/include/freetype2")
+        .include("/usr/include/libpng16")
+        .include("/usr/include/harfbuzz")
+        .include("/usr/include/glib-2.0")
+        .include("/usr/lib/glib-2.0/include")
+        .include("/usr/include/sysprof-6")
+        .files(["include/src/font_renderer.cpp",
         "include/src/glad.c",
         "include/src/GLDebug.cpp",
         "include/src/shader.cpp",
@@ -24,4 +32,7 @@ fn main() {
         "include/src/initializer.cpp"])
         .compile("rendering");
 
+    println!("cargo:rustc-link-lib=GL");
+    println!("cargo:rustc-link-lib=glfw");
+    println!("cargo:rustc-link-lib=freetype");
 }
