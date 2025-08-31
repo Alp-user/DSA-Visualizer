@@ -54,13 +54,13 @@ const DEFAULT_B: c_float = 1.0;
 const HIGHLIGHT_R: c_float = 1.0;
 const HIGHLIGHT_G: c_float = 0.0;
 const HIGHLIGHT_B: c_float = 0.0;
-const DEFAULT_THICKNESS: c_float = 7.0;
-const LINE_HEIGHT: c_float = 3.0;
-const TRIANGLE_WIDTH_RATIO_LINE_HEIGHT: c_float = 3.0 * LINE_HEIGHT; 
-const TRIANGLE_HIGHT:c_float = 20.0;
-const LINE_STOE_RATIO: c_float = 1.0;
+const DEFAULT_THICKNESS: c_float = 5.0;
+const LINE_HEIGHT: c_float = 2.0;
+const TRIANGLE_WIDTH_RATIO_LINE_HEIGHT: c_float = 5.0 * LINE_HEIGHT; 
+const TRIANGLE_HIGHT:c_float = 10.0;
+const LINE_STOE_RATIO: c_float = 0.3;
 const CENTERING_RATIO: c_float = 0.9;
-const WEIGHT_SIZE: c_int = 48;
+const WEIGHT_SIZE: c_int = 18;
 const WBOTTOM_DISTANCE:c_int = 10;
 
 #[allow(dead_code)]
@@ -78,6 +78,7 @@ pub struct IntPoint{
 }
 
 #[allow(dead_code)]
+#[derive(Debug)]
 pub enum CS{
   Circle(c_float),//radius
   Square(c_float),//width
@@ -85,25 +86,58 @@ pub enum CS{
   Removed,
 }
 
+#[derive(Debug)]
 pub enum LineState{
   StartToEnd (c_uint),
-  Nodirection ,
+  Nodirection,
+  Novisual,
   Removed,
 }
 
-pub enum Highlight{
-  Yes,
-  No,
+const RED: (c_float, c_float, c_float) = (1.0, 0.0, 0.0);
+const GREEN: (c_float, c_float, c_float) = (0.0, 1.0, 0.0);
+const BLUE: (c_float, c_float, c_float) = (0.0, 0.0, 1.0);
+const YELLOW: (c_float, c_float, c_float) = (1.0, 1.0, 0.0);
+const ORANGE: (c_float, c_float, c_float) = (1.0, 0.5, 0.0);
+const PURPLE: (c_float, c_float, c_float) = (0.5, 0.0, 1.0);
+const DEFAULT_COLOR: (c_float, c_float, c_float) = (DEFAULT_R, DEFAULT_G, DEFAULT_B);
+
+#[derive(Debug, Copy, Clone)]
+pub enum NodeColor {
+    Red,
+    Green,
+    Blue,
+    Yellow,
+    Orange,
+    Purple,
+    Default,
+}
+
+impl NodeColor {
+    fn to_rgb(&self) -> (c_float, c_float, c_float) {
+        match self {
+            NodeColor::Red => RED,
+            NodeColor::Green => GREEN,
+            NodeColor::Blue => BLUE,
+            NodeColor::Yellow => YELLOW,
+            NodeColor::Orange => ORANGE,
+            NodeColor::Purple => PURPLE,
+            NodeColor::Default => DEFAULT_COLOR,
+        }
+    }
 }
 
 #[allow(dead_code)]
+#[derive(Debug)]
 pub struct Node{
   distance: CS,
   shape_id: c_uint,
   text_id: c_uint,
+  weight_id: Option<c_uint>,
 }
 //location is the location of the shape and scale also the scale of the shape so access that
 
+#[derive(Debug)]
 #[allow(dead_code)]
 pub struct Line{
   state: LineState,
@@ -120,11 +154,12 @@ impl Point {
 }
 
 impl Line{
+
     pub fn new(way: LineState, start: Point, end: Point, weight_str: &str) -> Self {
-        let angle = angle_between_points!(start, end);
-        let middle: Point = average_point!(start, end);
-        let distance = distance_between_points!(start, end) / 2.0;
-        let weight_center: Point = perpendicular_point!(middle,(WEIGHT_SIZE/2 + WBOTTOM_DISTANCE), angle);//perpendicular to line
+      let angle = angle_between_points!(start, end);
+      let middle: Point = average_point!(start, end);
+      let distance = distance_between_points!(start, end) / 2.0;
+      let weight_center: Point = perpendicular_point!(middle,(WEIGHT_SIZE/2 + WBOTTOM_DISTANCE), angle);//perpendicular to line
     unsafe {
       let new_line: Line;
       match way {
@@ -145,8 +180,8 @@ impl Line{
             start,
             end,
             weight_id: c_side::create_text_centered(CString::new(weight_str).expect("Error cstr").as_ptr(),
-              weight_center.x as c_int, weight_center.y as c_int,
-              distance as c_int, WEIGHT_SIZE, angle),
+              weight_center.x as i32, weight_center.y as i32,
+              distance as i32, WEIGHT_SIZE, 0.0),
             line_id: c_side::new_line(middle.x, middle.y, distance, LINE_HEIGHT, angle, DEFAULT_R, DEFAULT_G, DEFAULT_B),
           };
         }
@@ -156,16 +191,27 @@ impl Line{
             start,
             end,
             weight_id: c_side::create_text_centered(CString::new(weight_str).expect("Error cstr").as_ptr(),
-              weight_center.x as c_int, weight_center.y as c_int,
-              distance as c_int, WEIGHT_SIZE, angle),
+              weight_center.x as i32, weight_center.y as i32,
+              distance as i32, WEIGHT_SIZE, 0.0),
             line_id: c_side::new_line(middle.x, middle.y, distance, LINE_HEIGHT, angle, DEFAULT_R, DEFAULT_G, DEFAULT_B),
           };
+        }
+        LineState::Novisual => {
+            new_line = Line {
+                state: LineState::Novisual,
+                start,
+                end,
+                line_id: 0,
+                weight_id: 0,
+            };
         }
         LineState::Removed => {
           panic!("Invalid");
         }
       };
-      load_all_text_vbo();
+      if !matches!(way, LineState::Novisual) {
+        load_all_text_vbo();
+      }
       new_line
     }
   }
@@ -194,15 +240,21 @@ impl Line{
           self.end = end;
           // Overriding line sprite
         }
+        LineState::Novisual => {
+            self.start = start;
+            self.end = end;
+        }
         LineState::Removed => {
           panic!("Invalid");
         }
       }
-      c_side::override_sprite(self.line_id, middle.x, middle.y, distance, 
-        LINE_HEIGHT, angle, DEFAULT_R, DEFAULT_G, DEFAULT_B);
-      c_side::move_text(self.weight_id, weight_center.x as c_int, weight_center.y as c_int);
-      c_side::rotate_text(self.weight_id, angle);
-      c_side::load_all_text_vbo();
+      if !matches!(self.state, LineState::Novisual) {
+        c_side::override_sprite(self.line_id, middle.x, middle.y, distance, 
+          LINE_HEIGHT, angle, DEFAULT_R, DEFAULT_G, DEFAULT_B);
+        c_side::move_text(self.weight_id, weight_center.x as i32, weight_center.y as i32);
+        c_side::rotate_text(self.weight_id, angle);
+        c_side::load_all_text_vbo();
+      }
     }
   }
 
@@ -211,84 +263,99 @@ impl Line{
       if let LineState::Removed = self.state {
       panic!("Invalid op");
       }
+      let is_visual = !matches!(self.state, LineState::Novisual);
       match self.state {
         LineState::StartToEnd(id) => {
           c_side::remove_sprite(id);
         }
         LineState::Nodirection => {
         }
+        LineState::Novisual => {
+        }
         LineState::Removed => unreachable!(),
       }
       self.state = LineState::Removed;
-      c_side::remove_sprite(self.line_id);
-      c_side::remove_text(self.weight_id);
-      c_side::load_all_text_vbo();
+      if is_visual {
+        c_side::remove_sprite(self.line_id);
+        c_side::remove_text(self.weight_id);
+        c_side::load_all_text_vbo();
+      }
     }
   }
 }
 
 
 
-impl Node{
-  pub fn new(shape_distance: CS,text: &str, center_x: c_float, center_y: c_float, highlight: Highlight) -> Self {
+impl Node {
+  pub fn new(shape_distance: CS, text: &str, center_x: c_float, center_y: c_float, color: NodeColor) -> Self {
     let mut bounding_width: c_float;
     let mut bounding_height: c_float;
-    let r: c_float;
-    let g: c_float;
-    let b: c_float;
+    let (r, g, b) = color.to_rgb();
     let send_text = CString::new(text).expect("Error");
 
-    if let highlight = Highlight::Yes {
-      r = HIGHLIGHT_R;
-      g = HIGHLIGHT_G;
-      b = HIGHLIGHT_B;
-    }
-    else{
-      r = DEFAULT_R;
-      g = DEFAULT_G;
-      b = DEFAULT_B;
-    }
-
-    let new_node: Node;
-    match shape_distance{
-      CS::Circle(radius) =>{
-        bounding_width = 2.0 * radius * f32::cos(PI / 4.0);
-        bounding_width -= 2.0 * DEFAULT_THICKNESS;
+    let node = match shape_distance {
+      CS::Circle(radius) => {
+        bounding_width = 3.0 * radius * f32::cos(PI / 4.0);
+        bounding_width -= 3.0 * DEFAULT_THICKNESS;
         bounding_width *= CENTERING_RATIO;
         bounding_height = bounding_width;
 
-        unsafe{
-          new_node = Node{distance: shape_distance,
-            text_id: c_side::create_text_centered( send_text.as_ptr(),
-            center_x as c_int, center_y as c_int, bounding_width as c_int, bounding_height as c_int, 0.0),
-            shape_id: c_side::new_circle(center_x, center_y, radius , DEFAULT_THICKNESS, r, g, b)
-          };
-        }
-      }
-      CS::Square(edge_length) =>{
-        bounding_width = 2.0 * (edge_length - DEFAULT_THICKNESS);
-        bounding_width *= CENTERING_RATIO;
-        bounding_height = bounding_width;
-
-        unsafe{
-          new_node = Node{distance: shape_distance,
-            text_id: c_side::create_text_centered( send_text.as_ptr(),
-            center_x as c_int, center_y as c_int, bounding_width as c_int, bounding_height as c_int, 0.0),
-            shape_id: c_side::new_square(center_x, center_y, edge_length , DEFAULT_THICKNESS, r, g, b)
+        unsafe {
+          Node {
+            distance: shape_distance,
+            text_id: c_side::create_text_centered(
+              send_text.as_ptr(),
+              center_x as i32,
+              center_y as i32,
+              bounding_width as i32,
+              bounding_height as i32,
+              0.0,
+            ),
+            shape_id: c_side::new_circle(center_x, center_y, radius, DEFAULT_THICKNESS, r, g, b),
+            weight_id: None,
           }
         }
       }
-      CS::Rectangle(width,height) => {
-        bounding_width = 2.0 * (width - DEFAULT_THICKNESS);
-        bounding_height = 2.0 * (height - DEFAULT_THICKNESS);
+      CS::Square(edge_length) => {
+        bounding_width = 3.0 * (edge_length - DEFAULT_THICKNESS);
+        bounding_width *= CENTERING_RATIO;
+        bounding_height = bounding_width;
+
+        unsafe {
+          Node {
+            distance: shape_distance,
+            text_id: c_side::create_text_centered(
+              send_text.as_ptr(),
+              center_x as i32,
+              center_y as i32,
+              bounding_width as i32,
+              bounding_height as i32,
+              0.0,
+            ),
+            shape_id: c_side::new_square(center_x, center_y, edge_length, DEFAULT_THICKNESS, r, g, b),
+            weight_id: None,
+          }
+        }
+      }
+      CS::Rectangle(width, height) => {
+        bounding_width = 3.0 * (width - DEFAULT_THICKNESS);
+        bounding_height = 3.0 * (height - DEFAULT_THICKNESS);
         bounding_width *= CENTERING_RATIO;
         bounding_height *= CENTERING_RATIO;
 
-        unsafe{
-          new_node = Node{distance: shape_distance,
-            text_id: c_side::create_text_centered( send_text.as_ptr(),
-            center_x as c_int, center_y as c_int, bounding_width as c_int, bounding_height as c_int, 0.0),
-            shape_id: c_side::new_rectangle(center_x, center_y, width,height , DEFAULT_THICKNESS, r, g, b)
+        unsafe {
+          Node {
+            distance: shape_distance,
+            text_id: c_side::create_text_centered(
+              send_text.as_ptr(),
+              center_x as i32,
+              center_y as i32,
+              bounding_width as i32,
+              bounding_height as i32,
+              0.0,
+            ),
+            shape_id: c_side::new_rectangle(center_x, center_y, width, height, DEFAULT_THICKNESS, r, g, b),
+            weight_id: None,
           }
         }
       }
@@ -296,24 +363,48 @@ impl Node{
         panic!("Invalid");
       }
     };
+    unsafe { c_side::load_all_text_vbo();}
+    node
+  }
+  pub fn move_node(&self, x: c_float, y: c_float){
     unsafe{
+      if let CS::Removed = self.distance {
+        panic!("Invalid op");
+      }
+      let text_obj = c_side::get_text(self.text_id);
+      let sprite_obj = c_side::get_sprite(self.shape_id);
+      c_side::move_text(self.text_id,
+        x as i32, y as i32);
+        // (*sprite_obj).x  as i32,
+        // (*sprite_obj).y as i32);
+      if let Some(weight_id) = self.weight_id {
+        let weight_obj = c_side::get_text(weight_id);
+        c_side::move_text(weight_id, x as i32,
+          (y - (*sprite_obj).height / 2.0 - WEIGHT_SIZE as f32 - WBOTTOM_DISTANCE as f32) as i32);
+      }
+      c_side::move_sprite(self.shape_id, x, y); 
       c_side::load_all_text_vbo();
     }
-    new_node
   }
 
-  pub fn move_node(&self, x: c_float, y: c_float){
-  unsafe{
-    if let CS::Removed = self.distance {
-      panic!("Invalid op");
-    }
-    let text_obj = c_side::get_text(self.text_id);
-    let sprite_obj = c_side::get_sprite(self.shape_id);
-    c_side::move_text(self.text_id,
-      (*sprite_obj).x  as c_int,
-      (*sprite_obj).y as c_int);
-    c_side::move_sprite(self.shape_id, x, y); 
-    c_side::load_all_text_vbo();
+  pub fn color_node(&mut self, color: NodeColor) {
+    let (r, g, b) = color.to_rgb();
+    unsafe {
+        if let CS::Removed = self.distance {
+            panic!("Invalid op");
+        }
+        let sprite_obj = c_side::get_sprite(self.shape_id);
+        c_side::override_sprite(
+            self.shape_id,
+            (*sprite_obj).x,
+            (*sprite_obj).y,
+            (*sprite_obj).width,
+            (*sprite_obj).height,
+            (*sprite_obj).thickness,
+            r,
+            g,
+            b,
+        );
     }
   }
 
@@ -330,26 +421,38 @@ impl Node{
 
           self.distance = CS::Circle(width);
           self.text_id = c_side::create_text_centered((*text_obj).text, 
-            (*sprite_obj).x as c_int, (*sprite_obj).y as c_int,
-            bounding_width as c_int, bounding_height as c_int, 0.0);
+            (*sprite_obj).x as i32, (*sprite_obj).y as i32,
+            bounding_width as i32, bounding_height as i32, 0.0);
         }
         CS::Square(_) =>{
           self.distance = CS::Square(width);
           self.text_id = c_side::create_text_centered((*text_obj).text,
-            (*sprite_obj).x as c_int, (*sprite_obj).y as c_int,
-            (width*2.0) as c_int, (height*2.0) as c_int, 0.0);
+            (*sprite_obj).x as i32, (*sprite_obj).y as i32,
+            (width*2.0) as i32, (height*2.0) as i32, 0.0);
         }
         CS::Rectangle(_, _) =>{
           self.distance = CS::Rectangle(width, height);
           self.text_id = c_side::create_text_centered((*text_obj).text,
-            (*sprite_obj).x as c_int, (*sprite_obj).y as c_int,
-            (width*2.0) as c_int, (height*2.0) as c_int, 0.0);
+            (*sprite_obj).x as i32, (*sprite_obj).y as i32,
+            (width*2.0) as i32, (height*2.0) as i32, 0.0);
         }
         CS::Removed =>{
           panic!("Removed");
         }
       }
       c_side::remove_text(old_text_id);
+      // Update or recreate weight text if present
+      if let Some(wid) = self.weight_id {
+        let weight_obj = c_side::get_text(wid);
+        let old_weight_id = wid;
+        // For simplicity, just recreate at the same position with new size
+        self.weight_id = Some(c_side::create_text_centered(
+          (*weight_obj).text,
+          (*sprite_obj).x as i32,
+          ((*sprite_obj).y - (*sprite_obj).height / 2.0 - WEIGHT_SIZE as f32 - WBOTTOM_DISTANCE as f32) as i32,
+          (width*2.0) as i32, (height*2.0) as i32, 0.0));
+        c_side::remove_text(old_weight_id);
+      }
       c_side::load_all_text_vbo();
     }
   }
@@ -361,8 +464,33 @@ impl Node{
       }
       c_side::remove_sprite(self.shape_id);
       c_side::remove_text(self.text_id);
+      if let Some(wid) = self.weight_id {
+        c_side::remove_text(wid);
+        self.weight_id = None;
+      }
       c_side::load_all_text_vbo();
       self.distance = CS::Removed;
+    }
+  }
+  
+  pub fn weight_node(&mut self, weight: &str) {
+    unsafe {
+        if let CS::Removed = self.distance {
+            panic!("Invalid op");
+        }
+        let sprite_obj = c_side::get_sprite(self.shape_id);
+        if let Some(old_weight_id) = self.weight_id {
+            c_side::remove_text(old_weight_id);
+        }
+        self.weight_id = Some(c_side::create_text_centered(
+            CString::new(weight).expect("Error cstr").as_ptr(),
+            (*sprite_obj).x as i32,
+            ((*sprite_obj).y - (*sprite_obj).height / 2.0 - WEIGHT_SIZE as f32 - WBOTTOM_DISTANCE as f32) as i32,
+            (*sprite_obj).width as i32,
+            WEIGHT_SIZE,
+            0.0,
+        ));
+        c_side::load_all_text_vbo();
     }
   }
 }

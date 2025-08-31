@@ -1,4 +1,4 @@
-//use tree_sitter::{InputEdit, Language, Parser, Point};
+
 mod c_side;
 mod tree;
 mod json_deserialize;
@@ -23,7 +23,8 @@ fn main() {
   glfw.window_hint(WindowHint::OpenGlProfile(OpenGlProfileHint::Core));
   glfw.window_hint(WindowHint::Samples(Some(4)));
   glfw.window_hint(glfw::WindowHint::AlphaBits(Some(8)));
-  let (mut window, events) = glfw.create_window(1920, 1080, "RustGL", WindowMode::Windowed).unwrap();
+  let (mut window, events) = 
+    glfw.create_window(1920, 1080, "RustGL", WindowMode::Windowed).unwrap();
   window.make_current();
   window.set_key_polling(true);
   gl::load_with(|s| window.get_proc_address(s));
@@ -34,8 +35,6 @@ fn main() {
     .root(&json_data)
     .build();
 
-  println!("{:#?}", graph_drawer);
-
   unsafe {
     c_side::initialize_render();
     gl::Enable(gl::BLEND);
@@ -43,16 +42,32 @@ fn main() {
     gl::Enable(gl::MULTISAMPLE);
     gl::Disable(gl::DEPTH_TEST);  // If applicable
   }
+
   unsafe{
     c_side::new_sprite_renderer();
     let path = "/usr/share/fonts/TTF/CaskaydiaCoveNerdFontMono-Regular.ttf";
     c_side::initialize_font_renderer(CString::new(path).expect("Error cstr").as_ptr());
+    let text1 = c_side::create_text(CString::new("Hello Rust!").expect("Error cstr").as_ptr(), 700, 100, 30);
+    c_side::load_all_text_vbo();
   }
-  
+
+  let mut graph_draw = GraphDrawBuilder::new()
+    .viewport((0,0), (1920,1080))
+    .root(&json_data)
+    .listener_id(0)
+    .build()
+    .expect("Error building graph drawer");
+
+  let mut new_graph = dsas::Graph::new(&json_data.nodes,(500,500), json_data.bases[0].root_id as usize);
+  new_graph.build_base(&json_data.bases[0]);
+  new_graph.bigbang_base(&json_data.bases[0].edges);
+  graph_draw.graphs.push(new_graph);
+  println!("{:#?}", graph_draw.graphs[0]);
+
   while !window.should_close() {
     window.swap_buffers();
     glfw.poll_events();
-
+    graph_draw.simulation_step();
     for (_, event) in glfw::flush_messages(&events) {
       match event {
         glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
@@ -73,7 +88,7 @@ fn main() {
     // Update animations if enabled
 
     unsafe {
-      gl::ClearColor(0.3, 0.8, 0.2, 0.5);
+      gl::ClearColor(0.0, 0.0, 0.0, 0.5);
       gl::Clear(gl::COLOR_BUFFER_BIT);
       c_side::render_text();
       c_side::draw_sprites();

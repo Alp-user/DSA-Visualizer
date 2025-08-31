@@ -215,7 +215,7 @@ pub fn base_info_helper(base_value: &Value) -> BaseInfo {
   unwrapped_diffobj.iter()
     .for_each(|(key, value)|{
       let id_or_text:Option<u32> = key.parse().ok();
-      match id_or_text{
+    match id_or_text{
         Some(from_id) => {
           new_base_info.edges.insert(from_id, 
             base_info_edge_former(value));
