@@ -23,27 +23,27 @@ pub struct BaseInfo{
 
 #[derive(Debug, Default)]
 pub struct DiffInfo{
-  added_edges: Vec<Edge>,
-  removed_edges: Vec<Edge>,
-  added_nodes: Vec<Node>,
-  removed_nodes: Vec<Node>,
-  weights_changed: Vec<Edge>,
-  labels_changed: Vec<Node>,
-  note: String,
-  root_id: u32,
+  pub added_edges: Vec<Edge>,
+  pub removed_edges: Vec<Edge>,
+  pub added_nodes: Vec<Node>,
+  pub removed_nodes: Vec<Node>,
+  pub weights_changed: Vec<Edge>,
+  pub labels_changed: Vec<Node>,
+  pub note: String,
+  pub root_id: u32,
 }
 
 #[derive(Debug,Default)]
 pub struct Edge{
-  from_id: u32,
-  to_id: u32,
-  weight: String,
+  pub from_id: u32,
+  pub to_id: u32,
+  pub weight: String,
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct Node{
-  id: u32,
-  label: String,
+  pub id: u32,
+  pub label: String,
 }
 
 pub fn deserialize_json(path: &str) -> Result<Root,Box<dyn Error>>{

@@ -132,4 +132,6 @@ unsafe extern "C" {
   pub fn override_sprite(sprite_id: c_uint, x: c_float, y: c_float, width: c_float, height: c_float, thick: c_float, r: c_float, g: c_float, b: c_float);
   //Initialize rendering
   pub fn initialize_render();
+  pub fn sprite_uniform_matrix(width: c_float, height: c_float, cam_horizontal: c_float, cam_vertical: c_float);
+  pub fn set_uniform_matrix(width: c_float, height: c_float, cam_horizontal: c_float, cam_vertical: c_float);
 }

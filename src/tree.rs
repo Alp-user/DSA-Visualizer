@@ -282,6 +282,25 @@ impl Line{
       }
     }
   }
+  pub fn weight_line(&mut self, weight_str: &str){
+    match self.state {
+      LineState::Removed => unreachable!(),
+      _ => {
+        unsafe{
+          c_side::remove_text(self.weight_id);
+          let angle = angle_between_points!(self.start, self.end);
+          let middle: Point = average_point!(self.start,self.end);
+          let distance = distance_between_points!(self.start,self.end) / 2.0;
+          let weight_center: Point = perpendicular_point!(middle,(WEIGHT_SIZE/2 + WBOTTOM_DISTANCE), angle);//perpendicular to line
+          self.weight_id = c_side::create_text_centered(CString::new(weight_str).expect("Error cstr").as_ptr(),
+            weight_center.x as i32, weight_center.y as i32,
+            distance as i32, WEIGHT_SIZE, 0.0);
+          c_side::load_all_text_vbo();
+        }
+      }
+    }
+
+  }
 }
 
 
@@ -405,6 +424,24 @@ impl Node {
             g,
             b,
         );
+    }
+  }
+  
+  pub fn label_node(&mut self, new_text: &str) {
+    unsafe {
+      if let CS::Removed = self.distance {
+        panic!("Invalid op");
+      }
+      let sprite_obj = c_side::get_sprite(self.shape_id);
+      c_side::remove_text(self.text_id);
+      self.text_id = c_side::create_text_centered(
+        CString::new(new_text).expect("Error cstr").as_ptr(),
+        (*sprite_obj).x as i32,
+        (*sprite_obj).y as i32,
+        (*sprite_obj).width as i32,
+        (*sprite_obj).height as i32,
+        0.0,
+      );
     }
   }
 
