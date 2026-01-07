@@ -16,6 +16,7 @@ fn main() {
         .flag("-Wextra")
         .flag("-pthread")
         .include("include/include")
+        .include("include/shaders")
         .include("/usr/include/freetype2")
         .include("/usr/include/libpng16")
         .include("/usr/include/harfbuzz")
