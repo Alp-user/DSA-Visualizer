@@ -139,3 +139,7 @@ Bu kütüphane özellikle veri yapıları eğitiminde faydalıdır. Öğrenciler
 - **Dil**: C++ ve Rust
 - **Görselleştirme**: OpenGL
 - **Veri Formatı**: JSON
+
+## Diğer Kısımlar
+- https://github.com/Alp-user/DSA-Visualizer-C-Side
+- https://github.com/Alp-user/DSA-Visualizer-JSON
