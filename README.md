@@ -130,10 +130,6 @@ bst.remove(6, first_listener, "");
 // ...
 ```
 
-**Çıktılar:**
-- `ds.txt` - Tüm değişiklikleri içeren JSON dosyası
-- `output.mp4` - Görselleştirme videosu
-
 ## Kullanım Alanları
 
 Bu kütüphane özellikle veri yapıları eğitiminde faydalıdır. Öğrenciler kendi yazdıkları veri yapılarının nasıl çalıştığını görsel olarak takip edebilir ve hataları kolayca tespit edebilirler.
@@ -143,4 +139,3 @@ Bu kütüphane özellikle veri yapıları eğitiminde faydalıdır. Öğrenciler
 - **Dil**: C++ ve Rust
 - **Görselleştirme**: OpenGL
 - **Veri Formatı**: JSON
-- **Genişletilebilirlik**: `AbstractNode` yapısı kolaylıkla yeni özellikler eklemek için genişletilebilir
