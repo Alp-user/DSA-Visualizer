@@ -129,6 +129,9 @@ bst.remove(1, first_listener, "");
 bst.remove(6, first_listener, "");
 // ...
 ```
+## Demo
+
+https://github.com/user-attachments/assets/d5716fc9-b1c6-41fb-9310-4d96b3804bcb
 
 ## Kullanım Alanları
 
